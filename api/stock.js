@@ -1,9 +1,13 @@
+// В v3 импортируем класс YahooFinance и создаём инстанс
 import YahooFinance from 'yahoo-finance2';
 
-const yahooFinance = new YahooFinance();
+// Создаём экземпляр (главное изменение в v3)
+const yahooFinance = new YahooFinance({
+  suppressNotices: ['yahooSurvey']
+});
 
 export default async function handler(req, res) {
-  // Разрешаем CORS
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Content-Type', 'application/json');
@@ -26,8 +30,8 @@ export default async function handler(req, res) {
     });
   }
 
-  // Обновленная валидация: буквы, цифры, точки, максимум 10 символов
-  if (!/^[A-Z0-9.]{1,10}$/.test(ticker.toUpperCase())) {
+  // Буквы, цифры, точки, до 10 символов
+  if (!/^[A-Za-z0-9.]{1,10}$/.test(ticker)) {
     return res.status(400).json({ 
       error: 'Invalid ticker format. Allowed: letters, digits, dots. Max 10 characters',
       example: 'AAPL, GOOGL, VARO.XC, BRK.B'
@@ -35,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Получаем данные по акции
+    // API метод quote() остаётся таким же в v3
     const quote = await yahooFinance.quote(ticker.toUpperCase());
 
     if (!quote) {
@@ -44,7 +48,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Возвращаем данные
     return res.status(200).json({
       success: true,
       ticker: quote.symbol,
@@ -54,7 +57,9 @@ export default async function handler(req, res) {
       previous_close: quote.regularMarketPreviousClose,
       change: quote.regularMarketChange,
       change_percent: quote.regularMarketChangePercent,
-      timestamp: new Date(quote.regularMarketTime * 1000).toISOString(),
+      timestamp: quote.regularMarketTime 
+        ? new Date(quote.regularMarketTime * 1000).toISOString() 
+        : null,
       market_cap: quote.marketCap,
       volume: quote.regularMarketVolume,
       high: quote.regularMarketDayHigh,
@@ -62,9 +67,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error fetching stock ', error);
+    console.error('Error fetching stock data:', error);
 
-    if (error.message.includes('No fundamentals data found')) {
+    if (error.message?.includes('No fundamentals data found') || 
+        error.message?.includes('Not Found')) {
       return res.status(404).json({ 
         error: `Data for ${ticker.toUpperCase()} not available`
       });
