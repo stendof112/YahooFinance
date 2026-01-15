@@ -1,5 +1,13 @@
 {
+  "name": "yahoo-finance-api",
+  "version": "1.0.0",
+  "description": "Yahoo Finance API for stock quotes",
+  "main": "api/stock.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel deploy --prod"
+  },
   "dependencies": {
-    "yahoo-finance2": "^2.13.3"
+    "yahoo-finance2": "^2.14.2"
   }
 }
